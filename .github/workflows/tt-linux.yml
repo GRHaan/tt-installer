@@ -1,0 +1,54 @@
+name: install and run tenstorrent software stack
+
+on:
+  workflow_dispatch:
+
+jobs:
+  install-and-run:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 90         # 60분은 좀 짧아 보여서 90분으로 늘림
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: APT insatll       # 필수 패키지 사전 설치
+        run: |
+          sudo apt update
+          sudo apt install -y curl git dkms python3-pip python3-venv cargo wget
+
+      - name: 파이썬 가상환경 생성
+        run: python3 -m venv tt-torch-env
+
+      - name: pip 설치
+        run: |
+          source ./tt-torch-env/bin/activate        # 매 runs마다 처음에 가상환경에 들어가도록 해야함.
+          pip install --upgrade pip
+
+      - name: run tenstorrent installer script      # 루트(root) 권한 필요
+        run: |
+          source ./tt-torch-env/bin/activate
+          curl -fsSL https://github.com/tenstorrent/tt-installer/releases/latest/download/install.sh \
+          | sudo bash -s -- --mode-non-interactive      # tt 설치중에 나오는 대화형 질문은 무시함(이래도 되는지는 확인해봐야함.)
+
+
+      - name: tt-smi and kernel module check
+        run: |
+          which tt-smi || echo "tt-smi를 찾을 수 없습니다."
+          sudo tt-smi || echo "NPU 카드를 찾는데 실패 했습니다."
+          lsmod | grep tenstorrent || echo "드라이버가 설치 되지 않았습니다."
+
+      - name: install tt-torch
+        run: |
+          source ./tt-torch-env/bin/activate
+          pip install tt-torch --pre --extra-index-url https://pypi.eng.aws.tenstorrent.com/
+          wget -q https://github.com/dmakoviichuk-tt/mpi-ulfm/releases/download/v5.0.7-ulfm/openmpi-ulfm_5.0.7-1_amd64.deb -O /tmp/openmpi-ulfm.deb && \
+          sudo apt install -y /tmp/openmpi-ulfm.deb             # 관련 software 설치 wget 가져오다 실패하면 설치 안함
+          pip install pillow torchvision tabulate requests      # 한 줄에 다 넣었음
+
+      - name: clone tt-forge
+        run: |
+          source ./tt-torch-env/bin/activate
+          git clone https://github.com/tenstorrent/tt-forge.git
+          cd tt-forge/demos/tt-torch
+          python3 resnet50_demo.py              # 마지막 확인 데모 파이썬 실행
