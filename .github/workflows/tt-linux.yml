@@ -18,7 +18,7 @@ jobs:
           sudo apt install -y curl git dkms python3-pip python3-venv cargo wget
 
       - name: 파이썬 가상환경 생성
-        run: python3 -m venv /root/.tenstorrent-venv
+        run: sudo python3 -m venv /root/.tenstorrent-venv
 
       - name: pip 설치
         run: |
