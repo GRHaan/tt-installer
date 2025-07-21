@@ -22,7 +22,7 @@ jobs:
 
       - name: pip 설치
         run: |
-          source ./tt-torch-env/bin/activate        # 매 runs마다 처음에 가상환경에 들어가도록 해야함.
+          # 매 runs마다 처음에 가상환경에 들어가도록 해야함.
           sudo -i bash -c "source /root/.tenstorrent-venv/bin/activate && pip install --upgrade pip"
 
       - name: run tenstorrent installer script      # 루트(root) 권한 필요함
